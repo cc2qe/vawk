@@ -1,0 +1,208 @@
+#!/usr/bin/env python
+
+import argparse, sys, re
+from argparse import RawTextHelpFormatter
+from subprocess import Popen, PIPE, STDOUT
+
+__author__ = "Colby Chiang (cc2qe@virginia.edu)"
+__version__ = "$Revision: 0.0.1 $"
+__date__ = "$Date: 2014-05-22 16:59 $"
+
+# --------------------------------------
+# define functions
+
+def get_args():
+    parser = argparse.ArgumentParser(formatter_class=RawTextHelpFormatter,
+                                     add_help=True, description="\
+vawk\n\
+author: " + __author__ + "\n\
+version: " + __version__ + "\n\
+description: An awk-like VCF parser")
+    parser.add_argument('-v', '--var', action='append', required=False, type=str, help='declare an external variable (e.g.: SIZE=10000)')
+    parser.add_argument('--header', required=False, action='store_true', help='print VCF header')
+    parser.add_argument('vawk_string', nargs=1, help='vawk string\n \
+    I$[FIELD], S$[ID], S$[ID]$[FMT]\n \
+    ex: \'{ if (I$AF>0.5) print $1,$2,$3,I$AN,S$NA12878,S$NA12877$GT }\'')
+    parser.add_argument('vcf', nargs='?', type=str, default=None, help='VCF file (default: stdin)')
+    parser.add_argument('--debug', action='store_true', help='debugging level verbosity')
+
+
+    # parse the arguments
+    args = parser.parse_args()
+
+    # if no input, check if part of pipe and if so, read stdin.
+    if args.vcf == None:
+        if sys.stdin.isatty():
+            parser.print_help()
+            exit(1)
+        else:
+            args.vcf = '-'
+
+    # send back the user input
+    return args
+
+# parse the vawk string into BEGIN PER-LINE and END portions
+def parse(raw):
+    begin = ''
+    perline = ''
+    end = ''
+    op_brace = 0
+    b = 0
+    a = 0
+    begin_idx = [0,-1]
+    end_idx = [0,-1]
+
+    # get BEGIN script
+    try:
+        begin_idx[0] = re.search(r'BEGIN\s*{', raw).start()
+        a = begin_idx[0] + 5
+        b = a
+        while begin == '':
+            if raw[b] == '{':
+                op_brace += 1
+            elif raw[b] == '}':
+                op_brace -= 1
+                if op_brace == 0:
+                    begin = raw[a:b+1].strip()[1:-1]
+                    begin_idx[1] = b
+                    break
+            b += 1
+    except AttributeError:
+        pass
+    raw = raw[:begin_idx[0]] + raw[begin_idx[1]+1:]
+
+    # get END script
+    try:
+        end_idx[0] = re.search(r'END\s*{', raw).start()
+        a = re.search(r'END\s*{', raw).start() + 3
+        b = a
+        while end == '':
+            if raw[b] == '{':
+                op_brace += 1
+            elif raw[b] == '}':
+                op_brace -= 1
+                if op_brace == 0:
+                    end = raw[a:b+1].strip()[1:-1]
+                    end_idx[1] = b
+                    break
+            b += 1
+    except AttributeError:
+        pass
+    raw = raw[:end_idx[0]] + raw[end_idx[1]+1:]
+
+    # get PER-LINE script (remainder of string)
+    perline = raw.strip()
+    if perline.startswith('{') and perline.endswith('}'):
+        perline = perline[1:-1]
+    else:
+        perline = 'if (' + perline + ') print ; '
+
+    return (begin, perline, end)
+
+# primary function
+def vawk(debug, header, var, vawk_string, vcf_file):
+    # parse the external variables
+    var_list = []
+    for v in var:
+        var_list = var_list + ['-v', v]
+
+    print var_list
+
+    # parse the vawk string in to BEGIN, END, and PERLINE
+    (begin, perline, end) = parse(vawk_string[0])
+
+    if debug:
+        print 'begin:', begin
+        print 'perline:', perline
+        print 'end:', end
+
+    # get the requested info keys from the command line (format: I$FIELD)
+    info_keys = set(re.findall(r'I\$([^\W]*)', perline))
+        
+    if re.search('I\$',perline):
+        # split and parse the relevant INFO fields
+        # THE SPLIT INFO MATCHING CAN BE SPED UP BY DOING MULTI GREP AND MOVING THE OR STATEMENT INSIDE
+        perline = 'split($8,x,";"); for (i=1;i<=length(x);++i) { ' \
+                  + ' '.join(['if (x[i]~"^' + mykey + '=" || x[i]=="' + mykey + '") { split(x[i],info,"="); if (length(info)==1) { INFO_' + mykey + '=1} else {INFO_' + mykey + '=info[2]} }' for mykey in info_keys]) \
+                  + '} ' \
+                  + perline
+        # replace the toxic $ in the awk command
+        for mykey in info_keys:
+            perline = re.sub('I\$' + mykey, 'INFO_' + mykey, perline)
+
+
+    # --------------------------------------
+    # sample info
+    samples_raw = set(re.findall(r'S\$([a-zA-Z0-9_^$]*)', perline))
+
+    #print samples_raw
+    sample_keys = []
+    for s in samples_raw:
+        s_tok = s.split('$')
+        if len(s_tok) == 1:
+            sample_keys.append([s_tok[0], 'ALL'])
+        elif len(s_tok) == 2:
+            sample_keys.append(s_tok)
+        else:
+            print 'Error: format should be S$[ID]$[FMT]'
+            exit(1)
+
+    for s_key in sample_keys:
+        if s_key[1] == 'ALL':
+            perline = 'SAMPLE_' + '_'.join(s_key) + '=$SAMPLE["' + s_key[0] + '"]; ' + perline
+        else:
+            perline = 'split($SAMPLE["' + s_key[0] + '"],samp,":"); for(i=1;i<=length(fmt);++i) { if (fmt[i]=="' + s_key[1] + '") { SAMPLE_' + '_'.join(s_key) + '=samp[i]; break } } ' + perline
+
+    # parse the sample info
+    if re.search('S\$',perline):
+        for s_key in sample_keys:
+            if s_key[1] == 'ALL':
+                perline = re.sub('S\$' + s_key[0], 'SAMPLE_' + '_'.join(s_key), perline)
+            else:
+                perline = re.sub('S\$' + '\$'.join(s_key), 'SAMPLE_' + '_'.join(s_key), perline)
+                
+
+    # split up the FORMAT field
+    perline = 'split($9,fmt,":"); ' + perline
+
+    # only print the header if requested
+    if header:
+        perline = 'if ($0~"^#") {if ($0!~"^##") { for (i=10;i<=NF;++i) SAMPLE[$i]=i; }; print} else {' + perline + '}'
+    else:
+        perline = 'if ($0~"^#") {if ($0!~"^##") { for (i=10;i<=NF;++i) SAMPLE[$i]=i; }; next} else {' + perline + '}'
+
+    vawk_string = 'BEGIN {FS="\t"; OFS="\t"; ' + begin + '}' + ' {' + perline + '} ' + 'END {' + end + '}'
+
+    cmd = ['awk'] + var_list + [vawk_string, vcf_file]
+    if debug:
+        print ' '.join(cmd)
+    
+    p = Popen(cmd, stdout=PIPE, stderr=STDOUT)
+
+    for line in iter(p.stdout.readline, b''):
+       print line.rstrip()
+
+    return
+
+# --------------------------------------
+# main function
+
+def main():
+    # parse the command line args
+    args = get_args()
+
+    # call primary function
+    vawk(args.debug, args.header, args.var, args.vawk_string, args.vcf)
+
+# initialize the script
+if __name__ == '__main__':
+    try:
+        sys.exit(main())
+    except IOError, e:
+        if e.errno != 32:  # ignore SIGPIPE
+            raise
+
+
+
+
+
