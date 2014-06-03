@@ -20,12 +20,10 @@ version: " + __version__ + "\n\
 description: An awk-like VCF parser")
     parser.add_argument('-v', '--var', action='append', required=False, type=str, help='declare an external variable (e.g.: SIZE=10000)')
     parser.add_argument('--header', required=False, action='store_true', help='print VCF header')
-    parser.add_argument('vawk_string', nargs=1, help='vawk string\n \
-    I$[FIELD], S$[ID], S$[ID]$[FMT]\n \
+    parser.add_argument('cmd', nargs=1, help='vawk command (using awk syntax)\n \
     ex: \'{ if (I$AF>0.5) print $1,$2,$3,I$AN,S$NA12878,S$NA12877$GT }\'')
     parser.add_argument('vcf', nargs='?', type=str, default=None, help='VCF file (default: stdin)')
     parser.add_argument('--debug', action='store_true', help='debugging level verbosity')
-
 
     # parse the arguments
     args = parser.parse_args()
@@ -105,8 +103,6 @@ def vawk(debug, header, var, vawk_string, vcf_file):
     var_list = []
     for v in var:
         var_list = var_list + ['-v', v]
-
-    print var_list
 
     # parse the vawk string in to BEGIN, END, and PERLINE
     (begin, perline, end) = parse(vawk_string[0])
@@ -192,7 +188,7 @@ def main():
     args = get_args()
 
     # call primary function
-    vawk(args.debug, args.header, args.var, args.vawk_string, args.vcf)
+    vawk(args.debug, args.header, args.var, args.cmd, args.vcf)
 
 # initialize the script
 if __name__ == '__main__':
