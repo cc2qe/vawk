@@ -9,5 +9,9 @@ VCF parser with awk-like arithmetic
 2. [Examples](#examples)
 
 ##Usage
+```
+usage: vawk [-h] [-v VAR] [--header] [--debug] cmd [vcf]
+```
+
 
 ##Examples
