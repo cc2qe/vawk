@@ -1,7 +1,7 @@
 vawk
 ====
 
-VCF parser with awk-like arithmetic
+An awk-like VCF parser
 
 ##Table of Contents
 
