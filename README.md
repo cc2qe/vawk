@@ -13,7 +13,7 @@ VCF parser with awk-like arithmetic
 usage: vawk [-h] [-v VAR] [--header] [--debug] cmd [vcf]
 
 positional arguments:
-  cmd               vawk command syntax is exactly the same as awk syntax with
+  cmd                vawk command syntax is exactly the same as awk syntax with
                           a few additional features. The INFO field can be split using
                           the I$ prefix and the SAMPLE field can be split using
                           the S$ prefix. For example, I$AF prints the allele frequency of
@@ -21,9 +21,12 @@ positional arguments:
                           NA12878 individual
 
                           The SAMPLE field can be further split based on the keys in the
-                          FORMAT field of the VCF (column 9).
+                          FORMAT field of the VCF (column 9). For example, S$NA12877$GT
+                          returns the genotype of the NA12878 individual.
+                          
                           ex: '{ if (I$AF>0.5) print $1,$2,$3,I$AN,S$NA12878,S$NA12877$GT }'
-  vcf               VCF file (default: stdin)
+
+  vcf                VCF file (default: stdin)
 
 optional arguments:
   -h, --help         show this help message and exit
