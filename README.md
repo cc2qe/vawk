@@ -40,12 +40,12 @@ optional arguments:
 
 Print the variant genotypes for sample CHM1.
 ```
-vawk '{ print S$CHM1$GT }' CHM1.lumpy.vcf
+$ vawk '{ print S$CHM1$GT }' CHM1.lumpy.vcf
 ```
 
 If the genotype is 0/1 in CHM1, print a subset of the fields.
 ```
-vawk -v MYGT="0/1" '{ if (S$CHM1$GT==MYGT) print $1,$2,$3,$4,$5,S$CHM1$SUP }' CHM1.lumpy.vcf  | head
+$ vawk -v MYGT="0/1" '{ if (S$CHM1$GT==MYGT) print $1,$2,$3,$4,$5,S$CHM1$SUP }' CHM1.lumpy.vcf  | head
 # 1    755446	   1  T	 <DEL>		   16
 # 1    839915	   2  C	 <DEL>		   10
 # 1    900049	   3  C	 <DEL>		   9
