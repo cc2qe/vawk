@@ -38,8 +38,14 @@ optional arguments:
 
 ##Examples
 
+Print the variant genotypes for sample CHM1.
 ```
-vawk -v MYGT="0/1" '{ if (S$CHM1$GT==MYGT) print $1,$2,$3,$4,$5,S$CHM1$SUP }'  CHM1.lumpy.vcf  | head
+vawk '{ print S$CHM1$GT }' CHM1.lumpy.vcf
+```
+
+If the genotype is 0/1 in CHM1, print a subset of the fields.
+```
+vawk -v MYGT="0/1" '{ if (S$CHM1$GT==MYGT) print $1,$2,$3,$4,$5,S$CHM1$SUP }' CHM1.lumpy.vcf  | head
 # 1    755446	   1  T	 <DEL>		   16
 # 1    839915	   2  C	 <DEL>		   10
 # 1    900049	   3  C	 <DEL>		   9
@@ -52,6 +58,7 @@ vawk -v MYGT="0/1" '{ if (S$CHM1$GT==MYGT) print $1,$2,$3,$4,$5,S$CHM1$SUP }'  C
 # 1    3092611	   10 T	 <DUP>		   11
 ```
 
+If the genotype of sample NA12878 is 0/1 and QUAL > 6, print the genotype and supporting evidence types for the variant.
 ```
 $ zcat ceph1463.lumpy.vcf.gz | vawk '{if (S$NA12878$GT=="0/1" && $6>6) print S$NA12891$GT, I$EVTYPE}'  | head
 # 0/1   PE_ALONE
@@ -66,10 +73,12 @@ $ zcat ceph1463.lumpy.vcf.gz | vawk '{if (S$NA12878$GT=="0/1" && $6>6) print S$N
 # 0/1   PE_ALONE
 ```
 
+If the genotype of sample NA12878 is 0/1, print the entire line. Also, include the VCF header in the output.
 ```
-$ zcat ceph1463.lumpy.vcf.gz | vawk 'S$NA12878$GT=="0/1"'
+$ zcat ceph1463.lumpy.vcf.gz | vawk --header 'S$NA12878$GT=="0/1"'
 ```
 
+If the variant has split-read support greater than 3, print a subset of the info fields.
 ```
 $ zcat ceph1463.lumpy.vcf.gz | vawk '{ if (I$SRSUP>3) print $1,$4,$5,$2,I$END, I$END-$2, I$SVLEN, I$EVTYPE, I$PESUP, I$SRSUP} ' | head
 # 1 A   <DEL>   988595  988622  27  -27 PE_SR   1   9
