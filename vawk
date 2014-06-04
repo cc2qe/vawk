@@ -5,7 +5,7 @@ from argparse import RawTextHelpFormatter
 from subprocess import Popen, PIPE, STDOUT
 
 __author__ = "Colby Chiang (cc2qe@virginia.edu)"
-__version__ = "$Revision: 0.0.1 $"
+__version__ = "$Revision: 0.0.1a $"
 __date__ = "$Date: 2014-05-22 16:59 $"
 
 # --------------------------------------
@@ -20,8 +20,19 @@ version: " + __version__ + "\n\
 description: An awk-like VCF parser")
     parser.add_argument('-v', '--var', action='append', default=[], required=False, type=str, help='declare an external variable (e.g.: SIZE=10000)')
     parser.add_argument('--header', required=False, action='store_true', help='print VCF header')
-    parser.add_argument('cmd', nargs=1, help='vawk command (using awk syntax)\n \
-    ex: \'{ if (I$AF>0.5) print $1,$2,$3,I$AN,S$NA12878,S$NA12877$GT }\'')
+    parser.add_argument('cmd', nargs=1, help='''vawk command syntax is exactly the same as awk syntax with
+    a few additional features. The INFO field can be split using
+    the I$ prefix and the SAMPLE field can be split using
+    the S$ prefix. For example, I$AF prints the allele frequency of
+    each variant and S$NA12878 prints the entire SAMPLE field for the
+    NA12878 individual for each variant.
+
+    The SAMPLE field can be further split based on the keys in the
+    FORMAT field of the VCF (column 9). For example, S$NA12877$GT
+    returns the genotype of the NA12878 individual.
+
+    ex: '{ if (I$AF>0.5) print $1,$2,$3,I$AN,S$NA12878,S$NA12877$GT }'
+    ''')
     parser.add_argument('vcf', nargs='?', type=str, default=None, help='VCF file (default: stdin)')
     parser.add_argument('--debug', action='store_true', help='debugging level verbosity')
 

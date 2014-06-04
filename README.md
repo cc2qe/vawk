@@ -17,8 +17,8 @@ positional arguments:
                           a few additional features. The INFO field can be split using
                           the I$ prefix and the SAMPLE field can be split using
                           the S$ prefix. For example, I$AF prints the allele frequency of
-                          a variant and S$NA12878 prints the entire SAMPLE field for the
-                          NA12878 individual
+                          each variant and S$NA12878 prints the entire SAMPLE field for the
+                          NA12878 individual for each variant.
 
                           The SAMPLE field can be further split based on the keys in the
                           FORMAT field of the VCF (column 9). For example, S$NA12877$GT
