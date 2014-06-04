@@ -18,7 +18,7 @@ vawk\n\
 author: " + __author__ + "\n\
 version: " + __version__ + "\n\
 description: An awk-like VCF parser")
-    parser.add_argument('-v', '--var', action='append', required=False, type=str, help='declare an external variable (e.g.: SIZE=10000)')
+    parser.add_argument('-v', '--var', action='append', default=[], required=False, type=str, help='declare an external variable (e.g.: SIZE=10000)')
     parser.add_argument('--header', required=False, action='store_true', help='print VCF header')
     parser.add_argument('cmd', nargs=1, help='vawk command (using awk syntax)\n \
     ex: \'{ if (I$AF>0.5) print $1,$2,$3,I$AN,S$NA12878,S$NA12877$GT }\'')
