@@ -39,7 +39,21 @@ optional arguments:
 ##Examples
 
 ```
-$ zcat /mnt/hall14_local/cc2qe/platinum/ceph1463.lumpy.vcf.gz | vawk '{if (S$NA12878$GT=="0/1" && $6>6) print S$NA12891$GT, I$EVTYPE}'  | head
+vawk -v MYGT="0/1" '{ if (S$CHM1$GT==MYGT) print $1,$2,$3,$4,$5,S$CHM1$SUP }'  CHM1.lumpy.vcf  | head
+# 1    755446	   1  T	 <DEL>		   16
+# 1    839915	   2  C	 <DEL>		   10
+# 1    900049	   3  C	 <DEL>		   9
+# 1    965024	   4  T	 <DEL>		   5
+# 1    2038157	   5  A	 <DEL>		   5
+# 1    2143123	   6  T	 <DUP>		   9
+# 1    2367925	   7  C	 <DEL>		   4
+# 1    2765775	   8  G	 <DEL>		   4
+# 1    3027000	   9  G	 <DEL>		   4
+# 1    3092611	   10 T	 <DUP>		   11
+```
+
+```
+$ zcat ceph1463.lumpy.vcf.gz | vawk '{if (S$NA12878$GT=="0/1" && $6>6) print S$NA12891$GT, I$EVTYPE}'  | head
 # 0/1   PE_ALONE
 # 0/0   PE_ALONE
 # 0/1   PE_ALONE
