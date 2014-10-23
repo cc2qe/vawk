@@ -189,7 +189,8 @@ def vawk(debug, header, var, vawk_string, vcf_file):
     for mykey in info_keys:
         perline = 'INFO_' + mykey + '=""; ' + perline
     for s_key in sample_keys:
-        perline = 'SAMPLE_' + '_'.join(s_key) + '=""; ' + perline
+        if s_key[0] != '*':
+            perline = 'SAMPLE_' + '_'.join(s_key) + '=""; ' + perline
 
     # split up the FORMAT field and tack it to the beginning of the per-line statement
     perline = 'split($9,fmt,":"); ' + perline
