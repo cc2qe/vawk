@@ -25,7 +25,7 @@ description: An awk-like VCF parser")
     the I$ prefix and the SAMPLE field can be split using
     the S$ prefix. For example, I$AF prints the allele frequency of
     each variant and S$NA12878 prints the entire SAMPLE field for the
-    NA12878 individual for each variant.
+    NA12878 individual for each variant. S$* returns all samples.
 
     The SAMPLE field can be further split based on the keys in the
     FORMAT field of the VCF (column 9). For example, S$NA12877$GT
@@ -139,9 +139,7 @@ def vawk(debug, header, var, vawk_string, vcf_file):
 
     # --------------------------------------
     # sample info
-    samples_raw = set(re.findall(r'S\$([a-zA-Z0-9_^$]*)', perline))
-
-    #print samples_raw
+    samples_raw = set(re.findall(r'S\$([a-zA-Z0-9_*^$]*)', perline))
     sample_keys = []
     for s in samples_raw:
         s_tok = s.split('$')
@@ -153,12 +151,25 @@ def vawk(debug, header, var, vawk_string, vcf_file):
             print 'Error: format should be S$[ID]$[FMT]'
             exit(1)
 
+    # parse the per-sample data fields
     for s_key in sample_keys:
+        # return all data for each sample
         if s_key[1] == 'ALL':
-            perline = 'SAMPLE_' + '_'.join(s_key) + '=$SAMPLE["' + s_key[0] + '"]; ' + perline
+            # concatenate all sample columns with S$*
+            if s_key[0] == '*':
+                perline =  'ALLSAMPLES_' + s_key[1] + '=""; for (COL=10;COL<=NF-1;++COL) { ALLSAMPLES_' + s_key[1] + '=ALLSAMPLES_' + s_key[1] + '""$COL"\\t" }; ALLSAMPLES_' + s_key[1] + '=ALLSAMPLES_' + s_key[1] + '""$NF; ' + perline
+            # user-specified sample name
+            else:
+                perline = 'SAMPLE_' + '_'.join(s_key) + '=$SAMPLE["' + s_key[0] + '"]; ' + perline
+        # return user-specified sample fields
         else:
-            perline = 'split($SAMPLE["' + s_key[0] + '"],samp,":"); for(i=1;i<=length(fmt);++i) { if (fmt[i]=="' + s_key[1] + '") { SAMPLE_' + '_'.join(s_key) + '=samp[i]; break } } ' + perline
+            # special case for wildcard (all samples)
+            if s_key[0] == '*':
+                perline = 'ALLSAMPLES_' + s_key[1] + '=""; for(i=1;i<length(fmt);++i) { if (fmt[i]=="' + s_key[1] + '") { fmt_key=i; break } }; for (COL=10;COL<=NF-1;++COL) { split($COL,samp,":"); ALLSAMPLES_' + s_key[1] + '=ALLSAMPLES_' + s_key[1] + '""samp[fmt_key]"\\t" }; split($NF,samp,":"); ALLSAMPLES_' + s_key[1] + '=ALLSAMPLES_' + s_key[1] + '""samp[fmt_key]; ' + perline
+            else:
+                perline = 'split($SAMPLE["' + s_key[0] + '"],samp,":"); for(i=1;i<=length(fmt);++i) { if (fmt[i]=="' + s_key[1] + '") { SAMPLE_' + '_'.join(s_key) + '=samp[i]; break } } ' + perline
 
+<<<<<<< HEAD
     # clear data from previous line
     for mykey in info_keys:
         perline = 'INFO_' + mykey + '=""; ' + perline
@@ -166,23 +177,40 @@ def vawk(debug, header, var, vawk_string, vcf_file):
         perline = 'SAMPLE_' + '_'.join(s_key) + '=""; ' + perline
 
     # parse the sample info
+=======
+    # rename query (ex: S$NA12878$GT to SAMPLE_NA12878_GT)
+    look_ahead = '(?![$_a-zA-Z0-9])'
+>>>>>>> dev
     if re.search('S\$',perline):
         for s_key in sample_keys:
             if s_key[1] == 'ALL':
-                perline = re.sub('S\$' + s_key[0], 'SAMPLE_' + '_'.join(s_key), perline)
+                if s_key[0] == '*':
+                    perline = re.sub(r'S\$\*' + look_ahead, 'ALLSAMPLES_' + s_key[1], perline)
+                    perline = perline
+                else:
+                    perline = re.sub('S\$' + s_key[0] + look_ahead, 'SAMPLE_' + '_'.join(s_key), perline)
             else:
+<<<<<<< HEAD
                 perline = re.sub('S\$' + '\$'.join(s_key), 'SAMPLE_' + '_'.join(s_key), perline)
                 
     # split up the FORMAT field
+=======
+                if s_key[0] == '*':
+                    perline = re.sub('S\$\*\$' + s_key[1] + look_ahead, 'ALLSAMPLES_' + s_key[1], perline)
+                else:
+                    perline = re.sub('S\$' + '\$'.join(s_key) + look_ahead, 'SAMPLE_' + '_'.join(s_key), perline)
+
+    # split up the FORMAT field and tack it to the beginning of the per-line statement
+>>>>>>> dev
     perline = 'split($9,fmt,":"); ' + perline
 
-    # only print the header if requested
+    # print the header if requested
     if header:
         perline = 'if ($0~"^#") {if ($0!~"^##") { for (i=10;i<=NF;++i) SAMPLE[$i]=i; }; print} else {' + perline + '}'
     else:
         perline = 'if ($0~"^#") {if ($0!~"^##") { for (i=10;i<=NF;++i) SAMPLE[$i]=i; }; next} else {' + perline + '}'
 
-    vawk_string = 'BEGIN {FS="\t"; OFS="\t"; ' + begin + '}' + ' {' + perline + '} ' + 'END {' + end + '}'
+    vawk_string = 'BEGIN {FS="\\t"; OFS="\\t"; ' + begin + '}' + ' {' + perline + '} ' + 'END {' + end + '}'
 
 
     cmd = ['awk'] + var_list + [vawk_string, vcf_file]
