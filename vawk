@@ -125,7 +125,7 @@ def vawk(debug, header, var, vawk_string, vcf_file):
 
     # get the requested info keys from the command line (format: I$FIELD)
     info_keys = set(re.findall(r'I\$([^\W]*)', perline))
-
+    
     if re.search('I\$',perline):
         # split and parse the relevant INFO fields
         # THE SPLIT INFO MATCHING CAN BE SPED UP BY DOING MULTI GREP AND MOVING THE OR STATEMENT INSIDE
@@ -169,18 +169,8 @@ def vawk(debug, header, var, vawk_string, vcf_file):
             else:
                 perline = 'split($SAMPLE["' + s_key[0] + '"],samp,":"); for(i=1;i<=length(fmt);++i) { if (fmt[i]=="' + s_key[1] + '") { SAMPLE_' + '_'.join(s_key) + '=samp[i]; break } } ' + perline
 
-<<<<<<< HEAD
-    # clear data from previous line
-    for mykey in info_keys:
-        perline = 'INFO_' + mykey + '=""; ' + perline
-    for s_key in sample_keys:
-        perline = 'SAMPLE_' + '_'.join(s_key) + '=""; ' + perline
-
-    # parse the sample info
-=======
     # rename query (ex: S$NA12878$GT to SAMPLE_NA12878_GT)
     look_ahead = '(?![$_a-zA-Z0-9])'
->>>>>>> dev
     if re.search('S\$',perline):
         for s_key in sample_keys:
             if s_key[1] == 'ALL':
@@ -190,18 +180,18 @@ def vawk(debug, header, var, vawk_string, vcf_file):
                 else:
                     perline = re.sub('S\$' + s_key[0] + look_ahead, 'SAMPLE_' + '_'.join(s_key), perline)
             else:
-<<<<<<< HEAD
-                perline = re.sub('S\$' + '\$'.join(s_key), 'SAMPLE_' + '_'.join(s_key), perline)
-                
-    # split up the FORMAT field
-=======
                 if s_key[0] == '*':
                     perline = re.sub('S\$\*\$' + s_key[1] + look_ahead, 'ALLSAMPLES_' + s_key[1], perline)
                 else:
                     perline = re.sub('S\$' + '\$'.join(s_key) + look_ahead, 'SAMPLE_' + '_'.join(s_key), perline)
 
+    # clear data from previous line
+    for mykey in info_keys:
+        perline = 'INFO_' + mykey + '=""; ' + perline
+    for s_key in sample_keys:
+        perline = 'SAMPLE_' + '_'.join(s_key) + '=""; ' + perline
+
     # split up the FORMAT field and tack it to the beginning of the per-line statement
->>>>>>> dev
     perline = 'split($9,fmt,":"); ' + perline
 
     # print the header if requested
@@ -211,7 +201,6 @@ def vawk(debug, header, var, vawk_string, vcf_file):
         perline = 'if ($0~"^#") {if ($0!~"^##") { for (i=10;i<=NF;++i) SAMPLE[$i]=i; }; next} else {' + perline + '}'
 
     vawk_string = 'BEGIN {FS="\\t"; OFS="\\t"; ' + begin + '}' + ' {' + perline + '} ' + 'END {' + end + '}'
-
 
     cmd = ['awk'] + var_list + [vawk_string, vcf_file]
     if debug:
