@@ -165,7 +165,7 @@ def vawk(debug, header, var, vawk_string, vcf_file):
         else:
             # special case for wildcard (all samples)
             if s_key[0] == '*':
-                perline = 'ALLSAMPLES_' + s_key[1] + '=""; for(i=1;i<length(fmt);++i) { if (fmt[i]=="' + s_key[1] + '") { fmt_key=i; break } }; for (COL=10;COL<=NF-1;++COL) { split($COL,samp,":"); ALLSAMPLES_' + s_key[1] + '=ALLSAMPLES_' + s_key[1] + '""samp[fmt_key]"\\t" }; split($NF,samp,":"); ALLSAMPLES_' + s_key[1] + '=ALLSAMPLES_' + s_key[1] + '""samp[fmt_key]; ' + perline
+                perline = 'ALLSAMPLES_' + s_key[1] + '=""; for(i=1;i<=length(fmt);++i) { if (fmt[i]=="' + s_key[1] + '") { fmt_key=i; break } }; for (COL=10;COL<=NF-1;++COL) { split($COL,samp,":"); ALLSAMPLES_' + s_key[1] + '=ALLSAMPLES_' + s_key[1] + '""samp[fmt_key]"\\t" }; split($NF,samp,":"); ALLSAMPLES_' + s_key[1] + '=ALLSAMPLES_' + s_key[1] + '""samp[fmt_key]; ' + perline
             else:
                 perline = 'split($SAMPLE["' + s_key[0] + '"],samp,":"); for(i=1;i<=length(fmt);++i) { if (fmt[i]=="' + s_key[1] + '") { SAMPLE_' + '_'.join(s_key) + '=samp[i]; break } } ' + perline
 
