@@ -5,8 +5,8 @@ from argparse import RawTextHelpFormatter
 from subprocess import Popen, PIPE, STDOUT
 
 __author__ = "Colby Chiang (cc2qe@virginia.edu)"
-__version__ = "$Revision: 0.0.1a $"
-__date__ = "$Date: 2014-05-22 16:59 $"
+__version__ = "$Revision: 0.0.1 $"
+__date__ = "$Date: 2014-10-23 17:31 $"
 
 # --------------------------------------
 # define functions
