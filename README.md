@@ -22,7 +22,7 @@ positional arguments:
 
                           The SAMPLE field can be further split based on the keys in the
                           FORMAT field of the VCF (column 9). For example, S$NA12877$GT
-                          returns the genotype of the NA12878 individual.
+                          returns the genotype of the NA12878 individual. S$* returns all samples.
                           
                           ex: '{ if (I$AF>0.5) print $1,$2,$3,I$AN,S$NA12878,S$NA12877$GT }'
 
@@ -91,4 +91,19 @@ $ zcat ceph1463.lumpy.vcf.gz | vawk '{ if (I$SRSUP>3) print $1,$4,$5,$2,I$END, I
 # 1 T   <DEL>   2054429 2055813 1384    -1384   SR_ALONE    0   40
 # 1 C   <DUP>   2212237 2213976 1739    1739    SR_ALONE    0   9
 # 1 G   <DEL>   2837835 2837901 66  -66 SR_ALONE    0   113
+```
+
+Print a genotype field for all samples with '*'
+```
+$ zcat mult_gt_rd.sv.vcf.gz | vawk '{ print S$*$GT }' | head
+# 0/0  0/0
+# 0/1  1/1
+# 0/0  0/0
+# 0/0  0/1
+# 0/0  0/1
+# 0/1  0/0
+# 0/0  0/0
+# 0/0  0/0
+# 0/0  0/0
+# 0/0  0/1
 ```
