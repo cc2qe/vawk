@@ -19,6 +19,7 @@ author: " + __author__ + "\n\
 version: " + __version__ + "\n\
 description: An awk-like VCF parser")
     parser.add_argument('-v', '--var', action='append', default=[], required=False, type=str, help='declare an external variable (e.g.: SIZE=10000)')
+    parser.add_argument('-c', '--col', dest='info_col', required=False, default=8, type=int, help='column of the INFO field [8]')
     parser.add_argument('--header', required=False, action='store_true', help='print VCF header')
     parser.add_argument('cmd', nargs=1, help='''vawk command syntax is exactly the same as awk syntax with
     a few additional features. The INFO field can be split using
@@ -109,8 +110,11 @@ def parse(raw):
     return (begin, perline, end)
 
 # primary function
-def vawk(debug, header, var, vawk_string, vcf_file):
+def vawk(debug, header, var, info_col, vawk_string, vcf_file):
     # parse the external variables
+    format_col = info_col + 1
+    samples_start_col = info_col + 2
+    
     var_list = []
     for v in var:
         var_list = var_list + ['-v', v]
@@ -129,7 +133,7 @@ def vawk(debug, header, var, vawk_string, vcf_file):
     if re.search('I\$',perline):
         # split and parse the relevant INFO fields
         # THE SPLIT INFO MATCHING CAN BE SPED UP BY DOING MULTI GREP AND MOVING THE OR STATEMENT INSIDE
-        perline = 'split($8,x,";"); for (i=1;i<=length(x);++i) { ' \
+        perline = 'split($' + str(info_col) + ',x,";"); for (i=1;i<=length(x);++i) { ' \
                   + ' '.join(['if (x[i]~"^' + mykey + '=" || x[i]=="' + mykey + '") { split(x[i],info,"="); if (length(info)==1) { INFO_' + mykey + '=1} else {INFO_' + mykey + '=info[2]} }' for mykey in info_keys]) \
                   + '} ' \
                   + perline
@@ -157,7 +161,7 @@ def vawk(debug, header, var, vawk_string, vcf_file):
         if s_key[1] == 'ALL':
             # concatenate all sample columns with S$*
             if s_key[0] == '*':
-                perline =  'ALLSAMPLES_' + s_key[1] + '=""; for (COL=10;COL<=NF-1;++COL) { ALLSAMPLES_' + s_key[1] + '=ALLSAMPLES_' + s_key[1] + '""$COL"\\t" }; ALLSAMPLES_' + s_key[1] + '=ALLSAMPLES_' + s_key[1] + '""$NF; ' + perline
+                perline =  'ALLSAMPLES_' + s_key[1] + '=""; for (COL=' + str(samples_start_col) + ';COL<=NF-1;++COL) { ALLSAMPLES_' + s_key[1] + '=ALLSAMPLES_' + s_key[1] + '""$COL"\\t" }; ALLSAMPLES_' + s_key[1] + '=ALLSAMPLES_' + s_key[1] + '""$NF; ' + perline
             # user-specified sample name
             else:
                 perline = 'SAMPLE_' + '_'.join(s_key) + '=$SAMPLE["' + s_key[0] + '"]; ' + perline
@@ -165,7 +169,7 @@ def vawk(debug, header, var, vawk_string, vcf_file):
         else:
             # special case for wildcard (all samples)
             if s_key[0] == '*':
-                perline = 'ALLSAMPLES_' + s_key[1] + '=""; for(i=1;i<=length(fmt);++i) { if (fmt[i]=="' + s_key[1] + '") { fmt_key=i; break } }; for (COL=10;COL<=NF-1;++COL) { split($COL,samp,":"); ALLSAMPLES_' + s_key[1] + '=ALLSAMPLES_' + s_key[1] + '""samp[fmt_key]"\\t" }; split($NF,samp,":"); ALLSAMPLES_' + s_key[1] + '=ALLSAMPLES_' + s_key[1] + '""samp[fmt_key]; ' + perline
+                perline = 'ALLSAMPLES_' + s_key[1] + '=""; for(i=1;i<=length(fmt);++i) { if (fmt[i]=="' + s_key[1] + '") { fmt_key=i; break } }; for (COL=' + str(samples_start_col) + ';COL<=NF-1;++COL) { split($COL,samp,":"); ALLSAMPLES_' + s_key[1] + '=ALLSAMPLES_' + s_key[1] + '""samp[fmt_key]"\\t" }; split($NF,samp,":"); ALLSAMPLES_' + s_key[1] + '=ALLSAMPLES_' + s_key[1] + '""samp[fmt_key]; ' + perline
             else:
                 perline = 'split($SAMPLE["' + s_key[0] + '"],samp,":"); for(i=1;i<=length(fmt);++i) { if (fmt[i]=="' + s_key[1] + '") { SAMPLE_' + '_'.join(s_key) + '=samp[i]; break } } ' + perline
 
@@ -193,13 +197,13 @@ def vawk(debug, header, var, vawk_string, vcf_file):
             perline = 'SAMPLE_' + '_'.join(s_key) + '=""; ' + perline
 
     # split up the FORMAT field and tack it to the beginning of the per-line statement
-    perline = 'split($9,fmt,":"); ' + perline
+    perline = 'split($' + str(format_col) + ',fmt,":"); ' + perline
 
     # print the header if requested
     if header:
-        perline = 'if ($0~"^#") {if ($0!~"^##") { for (i=10;i<=NF;++i) SAMPLE[$i]=i; }; print} else {' + perline + '}'
+        perline = 'if ($0~"^#") {if ($0!~"^##") { for (i=' + str(samples_start_col) + ';i<=NF;++i) SAMPLE[$i]=i; }; print} else {' + perline + '}'
     else:
-        perline = 'if ($0~"^#") {if ($0!~"^##") { for (i=10;i<=NF;++i) SAMPLE[$i]=i; }; next} else {' + perline + '}'
+        perline = 'if ($0~"^#") {if ($0!~"^##") { for (i=' + str(samples_start_col) + ';i<=NF;++i) SAMPLE[$i]=i; }; next} else {' + perline + '}'
 
     vawk_string = 'BEGIN {FS="\\t"; OFS="\\t"; ' + begin + '}' + ' {' + perline + '} ' + 'END {' + end + '}'
 
@@ -222,7 +226,7 @@ def main():
     args = get_args()
 
     # call primary function
-    vawk(args.debug, args.header, args.var, args.cmd, args.vcf)
+    vawk(args.debug, args.header, args.var, args.info_col, args.cmd, args.vcf)
 
 # initialize the script
 if __name__ == '__main__':
