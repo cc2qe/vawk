@@ -245,7 +245,7 @@ def vawk(debug, header, var, info_col, vawk_string, vcf_file):
 
     vawk_string = 'BEGIN {FS="\\t"; OFS="\\t"; ' + begin + '}' + ' {' + perline + '} ' + 'END {' + end + '}'
 
-    cmd = ['awk'] + var_list + [vawk_string, vcf_file]
+    cmd = ['gawk'] + var_list + [vawk_string, vcf_file]
     if debug:
         print ' '.join(cmd)
     
