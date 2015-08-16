@@ -5,7 +5,7 @@ from argparse import RawTextHelpFormatter
 from subprocess import Popen, PIPE, STDOUT
 
 __author__ = "Colby Chiang (cc2qe@virginia.edu)"
-__version__ = "$Revision: 0.0.2 $"
+__version__ = "$Revision: 0.0.3a $"
 __date__ = "$Date: 2015-02-28 15:32 $"
 
 # --------------------------------------
@@ -164,18 +164,22 @@ def vawk(debug, header, var, info_col, vawk_string, vcf_file):
         print 'end:', end
 
     # get the requested info keys from the command line (format: I$FIELD)
-    info_keys = set(re.findall(r'I\$([^\W]*)', perline))
+    info_keys = set(re.findall(r'I\[[\'\"]([^\W]*)[\'\"]\]', perline))
+    # print info_keys
+    # exit(1)
     
-    if re.search('I\$',perline):
+    # if re.search('I\$',perline):
+    if info_keys:
         # split and parse the relevant INFO fields
         # THE SPLIT INFO MATCHING CAN BE SPED UP BY DOING MULTI GREP AND MOVING THE OR STATEMENT INSIDE
         perline = 'split($' + str(info_col) + ',x,";"); for (i=1;i<=length(x);++i) { ' \
-                  + ' '.join(['if (x[i]~"^' + mykey + '=" || x[i]=="' + mykey + '") { split(x[i],info,"="); if (length(info)==1) { INFO_' + mykey + '=1} else {INFO_' + mykey + '=info[2]} }' for mykey in info_keys]) \
+                  + ' '.join(['if (x[i]~"^' + mykey + '=" || x[i]=="' + mykey + '") { split(x[i],info,"="); if (length(info)==1) { I["' + mykey + '"]=1} else {I["' + mykey + '"]=info[2]} }' for mykey in info_keys]) \
                   + '} ' \
                   + perline
+        # print perline
         # replace the toxic $ in the awk command
-        for mykey in info_keys:
-            perline = re.sub('I\$' + mykey, 'INFO_' + mykey, perline)
+        # for mykey in info_keys:
+        #     perline = re.sub('I\[' + mykey, 'I' + mykey, perline)
 
     # --------------------------------------
     # sample info
