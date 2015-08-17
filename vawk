@@ -164,7 +164,7 @@ def vawk(debug, header, var, info_col, vawk_string, vcf_file):
         print 'end:', end
 
     # get the requested info keys from the command line (format: I$FIELD)
-    info_keys = set(re.findall(r'I\[[\'\"]([^\W]*)[\'\"]\]', perline))
+    info_keys = set(re.findall(r'I\[[\'\"](.*?)[\'\"]\]', perline))
     # print info_keys
     # exit(1)
     
@@ -183,7 +183,8 @@ def vawk(debug, header, var, info_col, vawk_string, vcf_file):
 
     # --------------------------------------
     # sample info
-    samples_raw = set(re.findall(r'S\$([a-zA-Z0-9_\-\.*^$]*)', perline))
+    # samples_raw = set(re.findall(r'S\$([a-zA-Z0-9_\-\.*^$]*)', perline))
+    samples_raw = set(re.findall(r'S\[[\'\"](.*?)[\'\"]\]', perline))
     sample_queries = []
     for s in samples_raw:
         # make new Sample object and clean it
