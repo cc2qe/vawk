@@ -164,9 +164,11 @@ def vawk(debug, header, var, info_col, vawk_string, vcf_file):
         print 'end:', end
 
     # get the requested info keys from the command line (format: I$FIELD)
-    info_keys = set(re.findall(r'I\$([^\W]*)', perline))
+    # [\w]: any word character  [a-zA-Z0-9_]
+    # [\W]: any non-word character  [^a-zA-Z0-9_]
+    info_keys = set(re.findall(r'[\W]I\$([\w]*)', perline))
     
-    if re.search('I\$',perline):
+    if re.search('I\$([^\W]*)',perline):
         # split and parse the relevant INFO fields
         # THE SPLIT INFO MATCHING CAN BE SPED UP BY DOING MULTI GREP AND MOVING THE OR STATEMENT INSIDE
         perline = 'split($' + str(info_col) + ',x,";"); for (i=1;i<=length(x);++i) { ' \
@@ -179,7 +181,7 @@ def vawk(debug, header, var, info_col, vawk_string, vcf_file):
 
     # --------------------------------------
     # sample info
-    samples_raw = set(re.findall(r'S\$([a-zA-Z0-9_\-\.*^$]*)', perline))
+    samples_raw = set(re.findall(r'[\W]S\$([a-zA-Z0-9_\-\.*^$]*)', perline))
     sample_queries = []
     for s in samples_raw:
         # make new Sample object and clean it
@@ -245,7 +247,7 @@ def vawk(debug, header, var, info_col, vawk_string, vcf_file):
 
     vawk_string = 'BEGIN {FS="\\t"; OFS="\\t"; ' + begin + '}' + ' {' + perline + '} ' + 'END {' + end + '}'
 
-    cmd = ['awk'] + var_list + [vawk_string, vcf_file]
+    cmd = ['gawk'] + var_list + [vawk_string, vcf_file]
     if debug:
         print ' '.join(cmd)
     
