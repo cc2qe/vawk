@@ -255,7 +255,6 @@ def vawk(debug, header, var, info_col, vawk_string, vcf_file):
 
     for line in iter(p.stdout.readline, b''):
        print(line.decode('UTF-8').rstrip())
-
     return
 
 # --------------------------------------
