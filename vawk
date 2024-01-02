@@ -254,8 +254,7 @@ def vawk(debug, header, var, info_col, vawk_string, vcf_file):
     p = Popen(cmd, stdout=PIPE, stderr=STDOUT)
 
     for line in iter(p.stdout.readline, b''):
-        print(line.rstrip().decode("utf-8"))
-
+       print(line.decode('UTF-8').rstrip())
     return
 
 # --------------------------------------
